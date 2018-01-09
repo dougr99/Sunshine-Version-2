@@ -17,26 +17,42 @@ package com.example.android.sunshine.app;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.support.v7.app.ActionBarActivity;
+import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 
 
-public class DetailActivity extends ActionBarActivity {
-
+public class DetailActivity extends AppCompatActivity {
+    private final String LOG_TAG = DetailActivity.class.getSimpleName();
+    public static final String DATE_KEY = "date";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        Log.e(LOG_TAG,"onCreate");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_detail);
         if (savedInstanceState == null) {
+
+            // Create the detail fragment and add it to the activity
+            // using a fragment transaction.
+
+            Bundle arguments = new Bundle();
+            arguments.putParcelable(DetailFragment.DETAIL_URI,getIntent().getData());
+            DetailFragment detailFragment = new DetailFragment();
+            detailFragment.setArguments(arguments);
+
+
             getSupportFragmentManager().beginTransaction()
-                    .add(R.id.container, new DetailFragment())
+            //        .add(R.id.weather_detail_container, new DetailFragment())
+                    .add(R.id.weather_detail_container, detailFragment)
+                    //.add(R.id.container, new DetailFragment())
                     .commit();
         }
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
+        Log.e(LOG_TAG,"onCreateOptionsMenu");
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.detail, menu);
         return true;
@@ -44,14 +60,22 @@ public class DetailActivity extends ActionBarActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
+        Log.e(LOG_TAG,"onOptionsItemSelected");
         // Handle action bar item clicks here. The action bar will
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
         if (id == R.id.action_settings) {
-            startActivity(new Intent(this, SettingsActivity.class));
+            startActivity(new Intent(this, SettingsFragment.class));
             return true;
         }
         return super.onOptionsItemSelected(item);
     }
+    protected void onStart() { super.onStart() ; Log.e(LOG_TAG,"onStart");}
+    protected void onPause() { super.onPause() ; Log.e(LOG_TAG,"onPause");}
+    protected void onStop() { super.onStop() ; Log.e(LOG_TAG,"onStop");}
+    protected void onDestroy() { super.onDestroy() ; Log.e(LOG_TAG,"onDestroy");}
+    protected void onResume() { super.onResume() ; Log.e(LOG_TAG,"onResume");}
+    protected void onRestart() { super.onRestart() ; Log.e(LOG_TAG,"onRestart");}
+
 }

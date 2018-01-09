@@ -21,7 +21,6 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
-import android.text.format.Time;
 import android.util.Log;
 
 import com.example.android.sunshine.app.data.WeatherContract;
@@ -37,6 +36,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Calendar;
 import java.util.Vector;
 
 public class FetchWeatherTask extends AsyncTask<String, Void, Void> {
@@ -111,12 +111,15 @@ public class FetchWeatherTask extends AsyncTask<String, Void, Void> {
     private void getWeatherDataFromJson(String forecastJsonStr,
                                             String locationSetting)
             throws JSONException {
-
+Log.e(LOG_TAG," getWeatherFromJson");
         // Now we have a String representing the complete forecast in JSON Format.
         // Fortunately parsing is easy:  constructor takes the JSON string and converts it
         // into an Object hierarchy for us.
 
         // These are the names of the JSON objects that need to be extracted.
+
+        final String OWM_MAIN = "main";
+        final String OWM_WIND = "wind";
 
         // Location information
         final String OWM_CITY = "city";
@@ -137,14 +140,15 @@ public class FetchWeatherTask extends AsyncTask<String, Void, Void> {
 
         // All temperatures are children of the "temp" object.
         final String OWM_TEMPERATURE = "temp";
-        final String OWM_MAX = "max";
-        final String OWM_MIN = "min";
+        final String OWM_MAX = "temp_max";
+        final String OWM_MIN = "temp_min";
 
         final String OWM_WEATHER = "weather";
         final String OWM_DESCRIPTION = "main";
         final String OWM_WEATHER_ID = "id";
 
         try {
+            Log.e(LOG_TAG,"getWeatherDataFromJSON");
             JSONObject forecastJson = new JSONObject(forecastJsonStr);
             JSONArray weatherArray = forecastJson.getJSONArray(OWM_LIST);
 
@@ -156,10 +160,8 @@ public class FetchWeatherTask extends AsyncTask<String, Void, Void> {
             double cityLongitude = cityCoord.getDouble(OWM_LONGITUDE);
 
             long locationId = addLocation(locationSetting, cityName, cityLatitude, cityLongitude);
-
             // Insert the new weather information into the database
             Vector<ContentValues> cVVector = new Vector<ContentValues>(weatherArray.length());
-
             // OWM returns daily forecasts based upon the local time of the city that is being
             // asked for, which means that we need to know the GMT offset to translate this data
             // properly.
@@ -168,14 +170,24 @@ public class FetchWeatherTask extends AsyncTask<String, Void, Void> {
             // current day, we're going to take advantage of that to get a nice
             // normalized UTC date for all of our weather.
 
-            Time dayTime = new Time();
-            dayTime.setToNow();
+            // current time
+            Calendar now = Calendar.getInstance();
+            now.set(Calendar.MINUTE,0);
+            now.set(Calendar.MILLISECOND,0);
+            now.set(Calendar.SECOND,0);
+            now.set(Calendar.HOUR_OF_DAY,0);
+            Calendar newDate = Calendar.getInstance();
+
+
+
+//            Time dayTime = new Time();
+//            dayTime.setToNow();
 
             // we start at the day returned by local time. Otherwise this is a mess.
-            int julianStartDay = Time.getJulianDay(System.currentTimeMillis(), dayTime.gmtoff);
+//            int julianStartDay = Time.getJulianDay(System.currentTimeMillis(), dayTime.gmtoff);
 
             // now we work exclusively in UTC
-            dayTime = new Time();
+//            dayTime = new Time();
 
             for(int i = 0; i < weatherArray.length(); i++) {
                 // These are the values that will be collected.
@@ -193,27 +205,42 @@ public class FetchWeatherTask extends AsyncTask<String, Void, Void> {
 
                 // Get the JSON object representing the day
                 JSONObject dayForecast = weatherArray.getJSONObject(i);
-
+//Log.e(LOG_TAG," dayForecast " + dayForecast);
+                JSONObject mainObject =
+                        dayForecast.getJSONObject(OWM_MAIN);
+//Log.e(LOG_TAG,"main object " + mainObject);
                 // Cheating to convert this to UTC time, which is what we want anyhow
-                dateTime = dayTime.setJulianDay(julianStartDay+i);
+//                dateTime = dayTime.setJulianDay(julianStartDay+i);
 
-                pressure = dayForecast.getDouble(OWM_PRESSURE);
-                humidity = dayForecast.getInt(OWM_HUMIDITY);
-                windSpeed = dayForecast.getDouble(OWM_WINDSPEED);
-                windDirection = dayForecast.getDouble(OWM_WIND_DIRECTION);
-
-                // Description is in a child array called "weather", which is 1 element long.
-                // That element also contains a weather code.
+//Log.e(LOG_TAG + "yyyy ", " dateTime " + dateTime + " calendarNow " + now.getTimeInMillis());
+                newDate.setTimeInMillis(now.getTimeInMillis());
+                newDate.add(Calendar.DATE,i);
+                dateTime = newDate.getTimeInMillis() ;
+//Log.e(LOG_TAG + "yyyy " , "new date " + newDate.getTimeInMillis());
+ //               pressure = dayForecast.getDouble(OWM_PRESSURE);
+                pressure = mainObject.getDouble(OWM_PRESSURE);
+ //               humidity = dayForecast.getInt(OWM_HUMIDITY);
+                humidity = mainObject.getInt(OWM_HUMIDITY);
+//Log.e(LOG_TAG," pressure / humidity " + pressure + " " + humidity);
                 JSONObject weatherObject =
                         dayForecast.getJSONArray(OWM_WEATHER).getJSONObject(0);
+                JSONObject windObject =
+                        dayForecast.getJSONObject(OWM_WIND);
+
+                windSpeed = windObject.getDouble(OWM_WINDSPEED);
+                windDirection = windObject.getDouble(OWM_WIND_DIRECTION);
+                // Description is in a child array called "weather", which is 1 element long.
+                // That element also contains a weather code.
                 description = weatherObject.getString(OWM_DESCRIPTION);
                 weatherId = weatherObject.getInt(OWM_WEATHER_ID);
 
                 // Temperatures are in a child object called "temp".  Try not to name variables
                 // "temp" when working with temperature.  It confuses everybody.
-                JSONObject temperatureObject = dayForecast.getJSONObject(OWM_TEMPERATURE);
-                high = temperatureObject.getDouble(OWM_MAX);
-                low = temperatureObject.getDouble(OWM_MIN);
+//                JSONObject temperatureObject = dayForecast.getJSONObject(OWM_TEMPERATURE);
+//                high = temperatureObject.getDouble(OWM_MAX);
+                high = mainObject.getDouble(OWM_MAX);
+//                low = temperatureObject.getDouble(OWM_MIN);
+                low = mainObject.getDouble(OWM_MIN);
 
                 ContentValues weatherValues = new ContentValues();
 
@@ -249,7 +276,7 @@ public class FetchWeatherTask extends AsyncTask<String, Void, Void> {
 
     @Override
     protected Void doInBackground(String... params) {
-
+Log.e(LOG_TAG,"doInBackground");
         // If there's no zip code, there's nothing to look up.  Verify size of params.
         if (params.length == 0) {
             return null;
@@ -267,20 +294,23 @@ public class FetchWeatherTask extends AsyncTask<String, Void, Void> {
         String format = "json";
         String units = "metric";
         int numDays = 14;
-
+Log.e(LOG_TAG,"doInBackground - get weather ");
         try {
             // Construct the URL for the OpenWeatherMap query
             // Possible parameters are avaiable at OWM's forecast API page, at
             // http://openweathermap.org/API#forecast
             final String FORECAST_BASE_URL =
-                    "http://api.openweathermap.org/data/2.5/forecast/daily?";
+                    "http://api.openweathermap.org/data/2.5/forecast?";
             final String QUERY_PARAM = "q";
+            final String ID_PARAM = "id";
+            final String idKey = "524901";
             final String FORMAT_PARAM = "mode";
             final String UNITS_PARAM = "units";
             final String DAYS_PARAM = "cnt";
             final String APPID_PARAM = "APPID";
 
             Uri builtUri = Uri.parse(FORECAST_BASE_URL).buildUpon()
+                    .appendQueryParameter(ID_PARAM,idKey)
                     .appendQueryParameter(QUERY_PARAM, params[0])
                     .appendQueryParameter(FORMAT_PARAM, format)
                     .appendQueryParameter(UNITS_PARAM, units)

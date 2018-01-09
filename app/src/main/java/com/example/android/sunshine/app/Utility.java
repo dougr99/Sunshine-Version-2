@@ -18,14 +18,18 @@ package com.example.android.sunshine.app;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
-import android.text.format.Time;
+import android.util.Log;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 
 public class Utility {
+    private final String LOG_TAG = Utility.class.getSimpleName();
     public static String getPreferredLocation(Context context) {
+        Log.e("UTility ", " context being passed is " + context);
+
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
         return prefs.getString(context.getString(R.string.pref_location_key),
                 context.getString(R.string.pref_location_default));
@@ -38,10 +42,10 @@ public class Utility {
                 .equals(context.getString(R.string.pref_units_metric));
     }
 
-    static String formatTemperature(Context context, double temperature, boolean isMetric) {
+    static public String formatTemperature(Context context, double temperature, boolean isMetric) {
         double temp;
         if ( !isMetric ) {
-            temp = 9*temperature/5+32;
+            temp = (9*temperature/5)+32;
         } else {
             temp = temperature;
         }
@@ -66,28 +70,48 @@ public class Utility {
      * @return a user-friendly representation of the date.
      */
     public static String getFriendlyDayString(Context context, long dateInMillis) {
-        // The day string for forecast uses the following logic:
-        // For today: "Today, June 8"
-        // For tomorrow:  "Tomorrow"
-        // For the next 5 days: "Wednesday" (just the day name)
-        // For all days after that: "Mon Jun 8"
 
-        Time time = new Time();
-        time.setToNow();
-        long currentTime = System.currentTimeMillis();
-        int julianDay = Time.getJulianDay(dateInMillis, time.gmtoff);
-        int currentJulianDay = Time.getJulianDay(currentTime, time.gmtoff);
+        // input time
 
-        // If the date we're building the String for is today's date, the format
-        // is "Today, June 24"
-        if (julianDay == currentJulianDay) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(dateInMillis);
+        calendar.set(Calendar.MINUTE,0);
+        calendar.set(Calendar.MILLISECOND,0);
+        calendar.set(Calendar.SECOND,0);
+        calendar.set(Calendar.HOUR_OF_DAY,0);
+
+        // current time
+        Calendar now = Calendar.getInstance();
+        now.set(Calendar.MINUTE,0);
+        now.set(Calendar.MILLISECOND,0);
+        now.set(Calendar.SECOND,0);
+        now.set(Calendar.HOUR_OF_DAY,0);
+
+        // next week
+
+        Calendar nowPlus7 = Calendar.getInstance();
+        nowPlus7.add(Calendar.DATE,7);
+        nowPlus7.set(Calendar.MINUTE,0);
+        nowPlus7.set(Calendar.MILLISECOND,0);
+        nowPlus7.set(Calendar.SECOND,0);
+        nowPlus7.set(Calendar.HOUR_OF_DAY,0);
+
+
+//        Time time = new Time();
+//        time.setToNow();
+//        long currentTime = System.currentTimeMillis();
+//        int julianDay = Time.getJulianDay(dateInMillis, time.gmtoff);
+//        int currentJulianDay = Time.getJulianDay(currentTime, time.gmtoff);
+//        if (julianDay == currentJulianDay) {
+
+        if (calendar.getTimeInMillis() == now.getTimeInMillis()){
             String today = context.getString(R.string.today);
             int formatId = R.string.format_full_friendly_date;
-            return String.format(context.getString(
-                    formatId,
-                    today,
-                    getFormattedMonthDay(context, dateInMillis)));
-        } else if ( julianDay < currentJulianDay + 7 ) {
+            return context.getString(
+                    formatId, today,getFormattedMonthDay(context,dateInMillis)
+            );
+            // 7 day test accidentally deleted
+        } else if ( calendar.compareTo(nowPlus7) < 0) {  // less than 7 days ino the future
             // If the input date is less than a week in the future, just return the day name.
             return getDayName(context, dateInMillis);
         } else {
@@ -109,17 +133,45 @@ public class Utility {
         // If the date is today, return the localized version of "Today" instead of the actual
         // day name.
 
-        Time t = new Time();
-        t.setToNow();
-        int julianDay = Time.getJulianDay(dateInMillis, t.gmtoff);
-        int currentJulianDay = Time.getJulianDay(System.currentTimeMillis(), t.gmtoff);
-        if (julianDay == currentJulianDay) {
+        // input time
+
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(dateInMillis);
+        calendar.set(Calendar.MINUTE,0);
+        calendar.set(Calendar.MILLISECOND,0);
+        calendar.set(Calendar.SECOND,0);
+        calendar.set(Calendar.HOUR_OF_DAY,0);
+
+
+        // current time
+        Calendar now = Calendar.getInstance();
+        now.set(Calendar.MINUTE,0);
+        now.set(Calendar.MILLISECOND,0);
+        now.set(Calendar.SECOND,0);
+        now.set(Calendar.HOUR_OF_DAY,0);
+
+        // tomorrow
+
+        Calendar nowPlus1 = Calendar.getInstance();
+        nowPlus1.add(Calendar.DATE,1);
+        nowPlus1.set(Calendar.MINUTE,0);
+        nowPlus1.set(Calendar.MILLISECOND,0);
+        nowPlus1.set(Calendar.SECOND,0);
+        nowPlus1.set(Calendar.HOUR_OF_DAY,0);
+
+//        Time t = new Time();
+//        t.setToNow();
+//        int julianDay = Time.getJulianDay(dateInMillis, t.gmtoff);
+//        int currentJulianDay = Time.getJulianDay(System.currentTimeMillis(), t.gmtoff);
+//        if (julianDay == currentJulianDay) {
+//        Log.e("Utility yyyy "," in " + calendar.get(Calendar.DAY_OF_MONTH) +" now "+ now.get(Calendar.DAY_OF_MONTH) + " plusone " +nowPlus1.get(Calendar.DAY_OF_MONTH));
+        if (calendar.compareTo(now)==0) {
             return context.getString(R.string.today);
-        } else if ( julianDay == currentJulianDay +1 ) {
+        } else if ( calendar.compareTo(nowPlus1) == 0 ) { //julianDay == currentJulianDay +1 ) {
             return context.getString(R.string.tomorrow);
         } else {
-            Time time = new Time();
-            time.setToNow();
+//            Time time = new Time();
+//            time.setToNow();
             // Otherwise, the format is just the day of the week (e.g "Wednesday".
             SimpleDateFormat dayFormat = new SimpleDateFormat("EEEE");
             return dayFormat.format(dateInMillis);
@@ -134,8 +186,8 @@ public class Utility {
      * @return The day in the form of a string formatted "December 6"
      */
     public static String getFormattedMonthDay(Context context, long dateInMillis ) {
-        Time time = new Time();
-        time.setToNow();
+//        Time time = new Time();
+//        time.setToNow();
         SimpleDateFormat dbDateFormat = new SimpleDateFormat(Utility.DATE_FORMAT);
         SimpleDateFormat monthDayFormat = new SimpleDateFormat("MMMM dd");
         String monthDayString = monthDayFormat.format(dateInMillis);
@@ -174,4 +226,58 @@ public class Utility {
         }
         return String.format(context.getString(windFormat), windSpeed, direction);
     }
+    public static int getIconResourceForWeatherCondition(int weatherId) {
+        if (weatherId >= 200 && weatherId <= 232) {
+            return R.drawable.ic_storm;
+        } else if (weatherId >= 300 && weatherId <= 321) {
+            return R.drawable.ic_light_rain;
+        } else if (weatherId >= 500 && weatherId <= 504) {
+            return R.drawable.ic_rain;
+        } else if (weatherId == 511) {
+            return R.drawable.ic_snow;
+        } else if (weatherId >= 520 && weatherId <= 531) {
+            return R.drawable.ic_rain;
+        } else if (weatherId >= 600 && weatherId <= 622) {
+            return R.drawable.ic_snow;
+        } else if (weatherId >= 701 && weatherId <= 761) {
+            return R.drawable.ic_fog;
+        } else if (weatherId == 761 || weatherId == 781) {
+            return R.drawable.ic_storm;
+        } else if (weatherId == 800) {
+            return R.drawable.ic_clear;
+        } else if (weatherId == 801) {
+            return R.drawable.ic_light_clouds;
+        } else if (weatherId >= 802 && weatherId <= 804) {
+            return R.drawable.ic_cloudy;
+        }
+        return -1;
+    }
+    public static int getArtResourceForWeatherCondition(int weatherId) {
+        Log.e("UTility","getArtResourceForWeatherCondition");
+        if (weatherId >= 200 && weatherId <= 232) {
+            return R.drawable.art_storm;
+        } else if (weatherId >= 300 && weatherId <= 321) {
+            return R.drawable.art_light_rain;
+        } else if (weatherId >= 500 && weatherId <= 504) {
+            return R.drawable.art_rain;
+        } else if (weatherId == 511) {
+            return R.drawable.art_snow;
+        } else if (weatherId >= 520 && weatherId <= 531) {
+            return R.drawable.art_rain;
+        } else if (weatherId >= 600 && weatherId <= 622) {
+            return R.drawable.art_snow;
+        } else if (weatherId >= 701 && weatherId <= 761) {
+            return R.drawable.art_fog;
+        } else if (weatherId == 761 || weatherId == 781) {
+            return R.drawable.art_storm;
+        } else if (weatherId == 800) {
+            return R.drawable.art_clear;
+        } else if (weatherId == 801) {
+            return R.drawable.art_light_clouds;
+        } else if (weatherId >= 802 && weatherId <= 804) {
+            return R.drawable.art_clouds;
+        }
+        return -1;
+    }
+
 }

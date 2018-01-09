@@ -19,12 +19,15 @@ import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.net.Uri;
 import android.provider.BaseColumns;
-import android.text.format.Time;
+import android.util.Log;
+
+import java.util.Calendar;
 
 /**
  * Defines table and column names for the weather database.
  */
 public class WeatherContract {
+    private  static String LOG_TAG = WeatherContract.class.getSimpleName();
 
     // The "Content authority" is a name for the entire content provider, similar to the
     // relationship between a domain name and its website.  A convenient string to use for the
@@ -48,11 +51,18 @@ public class WeatherContract {
     // the database to the start of the the Julian day at UTC.
     public static long normalizeDate(long startDate) {
         // normalize the start date to the beginning of the (UTC) day
-        Time time = new Time();
-        time.set(startDate);
-        int julianDay = Time.getJulianDay(startDate, time.gmtoff);
-        return time.setJulianDay(julianDay);
-    }
+//        Time time = new Time();
+//        time.set(startDate);
+//        int julianDay = Time.getJulianDay(startDate, time.gmtoff);
+//        return time.setJulianDay(julianDay);
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(startDate);
+        calendar.set(Calendar.MINUTE,0);
+        calendar.set(Calendar.MILLISECOND,0);
+        calendar.set(Calendar.SECOND,0);
+        calendar.set(Calendar.HOUR_OF_DAY,0);
+        return calendar.getTimeInMillis();
+  }
 
     /* Inner class that defines the table contents of the location table */
     public static final class LocationEntry implements BaseColumns {
@@ -140,6 +150,13 @@ public class WeatherContract {
         public static Uri buildWeatherLocationWithStartDate(
                 String locationSetting, long startDate) {
             long normalizedDate = normalizeDate(startDate);
+            Log.e(LOG_TAG, "buildWeatherLocationWithStartDate norm date " + normalizedDate);
+            Log.e(LOG_TAG, "buildWeatherLocationWithStartDate location  " + locationSetting);
+            Log.e(LOG_TAG, "buildWeatherLocationWithStartDate uri       " + CONTENT_URI);
+            Log.e(LOG_TAG,"buildWeatherLocationWithStartDate URI IN WC" + CONTENT_URI.buildUpon()
+                    .appendPath(locationSetting)
+                    .appendQueryParameter(COLUMN_DATE, Long.toString(normalizedDate)).build());
+
             return CONTENT_URI.buildUpon().appendPath(locationSetting)
                     .appendQueryParameter(COLUMN_DATE, Long.toString(normalizedDate)).build();
         }
